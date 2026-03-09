@@ -70,33 +70,37 @@ def save_data(data, db_path="stock_data.db"):
             except Exception as e:
                 print(f"[ERROR SAVE] Failed to insert stock {stock.get("symbol")}: {e}")
 
-    # Option data (put options only as per user's previous request)
-    if "options" in data and "put" in data["options"]:
-        option = data["options"]["put"]
-        try:
-            cursor.execute("""
-                INSERT INTO options (symbol, expiration_date, strike_price, option_type, last_price, delta, gamma, theta, vega, rho, phi, bid_iv, mid_iv, ask_iv, record_date, record_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                option.get("symbol"),
-                option.get("expiration_date"),
-                option.get("strike_price"),
-                "Put", # Hardcoded as "Put" as per user request to only save put options
-                option.get("last_price"),
-                option.get("delta"),
-                option.get("gamma"),
-                option.get("theta"),
-                option.get("vega"),
-                option.get("rho"),
-                option.get("phi"),
-                option.get("bid_iv"),
-                option.get("mid_iv"),
-                option.get("ask_iv"),
-                record_date,
-                record_time
-            ))
-        except Exception as e:
-            print(f"[ERROR SAVE] Failed to insert put option for {option.get("symbol")}: {e}")
+    # Option data (now expects a list of options)
+    if "options" in data and isinstance(data["options"], list):
+        for option in data["options"]:
+            # Ensure it's a put option, or handle different types if needed
+            if option.get("option_type") == "Put":
+                try:
+                    cursor.execute("""
+                        INSERT INTO options (symbol, expiration_date, strike_price, option_type, last_price, delta, gamma, theta, vega, rho, phi, bid_iv, mid_iv, ask_iv, record_date, record_time)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        option.get("symbol"),
+                        option.get("expiration_date"),
+                        option.get("strike_price"),
+                        option.get("option_type"), # Now dynamic
+                        option.get("last_price"),
+                        option.get("delta"),
+                        option.get("gamma"),
+                        option.get("theta"),
+                        option.get("vega"),
+                        option.get("rho"),
+                        option.get("phi"),
+                        option.get("bid_iv"),
+                        option.get("mid_iv"),
+                        option.get("ask_iv"),
+                        record_date,
+                        record_time
+                    ))
+                    print(f"[DEBUG SAVE] Inserted put option for {option.get("symbol")} Exp: {option.get("expiration_date")}")
+                except Exception as e:
+                    print(f"[ERROR SAVE] Failed to insert put option for {option.get("symbol")} Exp: {option.get("expiration_date")}: {e}")
+
     conn.commit()
     conn.close()
 
